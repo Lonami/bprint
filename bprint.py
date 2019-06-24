@@ -100,6 +100,9 @@ def bprint(
             return skip_callable and callable(attr)
 
     def handle_kvp(ind, level, kvp):
+        if sort:
+            kvp = sorted(kvp)
+
         for key, value in kvp:
             if not should_skip(key, value):
                 out.write('\n')

@@ -23,18 +23,26 @@ object, and thus beautifully print them, even if they don't define
 [`__str__`](https://docs.python.org/3/reference/datamodel.html#object.__str__)
 (which is in fact not queried at all for custom classes).
 
+Installation is done with `pip install beauty-print`.
+
 ## What?
 
 `bprint` will help you beautifully print your objects, and is also easily
 customizable, with a lot of freedom.
 
+The `pip` package is called
+[`beauty-print`](https://pypi.org/project/beauty-print/) because `bprint`
+was already taken, unfortunately.
+
 ## When?
 
-During one of the many moments when I'm procrastinating.
+During one of the many moments when I'm procrastinating. You can install
+it any time you want though!
 
 ## Where?
 
-In Python 3.6 and above.
+In Python 3.6 and above, and PyPi as
+[`beauty-print`](https://pypi.org/project/beauty-print/).
 
 ## How much?
 

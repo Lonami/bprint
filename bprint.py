@@ -77,6 +77,13 @@ def bprint(
         sep
             The separator to use when there is more than one value.
     """
+    if maximum_depth is None:
+        maximum_depth = float('inf')
+    elif maximum_depth <= 0:
+        return
+    else:
+        maximum_depth -= 1
+
     if stream == str:
         out = io.StringIO()
     else:
@@ -145,26 +152,32 @@ def bprint(
 
         elif isinstance(obj, dict):
             out.write(space)
-            out.write('dict:')
-            handle_kvp(next_indent, level + 1, obj.items())
+            out.write('dict')
+            if level < maximum_depth:
+                handle_kvp(next_indent, level + 1, obj.items())
 
         elif hasattr(obj, '__iter__'):
             # Special case who wants no space before
-            level += 1
-            for attr in obj:
-                out.write('\n')
-                out.write(next_indent)
-                out.write('- ')
-                fmt(attr, level)
+            if level < maximum_depth:
+                level += 1
+                for attr in obj:
+                    out.write('\n')
+                    out.write(next_indent)
+                    out.write('- ')
+                    fmt(attr, level)
 
-            level -= 1
+                level -= 1
+            else:
+                out.write(space)
+                out.write('[…]')
 
         else:
             out.write(space)
             out.write(obj.__class__.__name__)
-            out.write(':')
-            handle_kvp(next_indent, level + 1,
-                       ((name, getattr(obj, name)) for name in dir(obj)))
+            if level < maximum_depth:
+                out.write(':')
+                handle_kvp(next_indent, level + 1,
+                           ((name, getattr(obj, name)) for name in dir(obj)))
 
     for val in values:
         fmt(val, level=start_indent_level)

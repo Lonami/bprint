@@ -142,7 +142,7 @@ def bprint(
 
         elif isinstance(obj, bytes):
             out.write(space)
-            if all(0x20 <= c < 0x7f for c in obj):
+            if human_bytes and all(0x20 <= c < 0x7f for c in obj):
                 value = repr(obj[:max_bytes_len])[:-1]
                 out.write(value)
                 if len(obj) > max_bytes_len:

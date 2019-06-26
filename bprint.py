@@ -9,7 +9,7 @@ DEFAULT_STREAM = sys.stdout
 def bprint(
         *values: typing.Any,
         stream: typing.Union[typing.TextIO, typing.Type[str]] = None,
-        indent: str = '  ',
+        indent: typing.Union[str, typing.Tuple[str]] = '  ',
         start_indent_level: int = 0,
         maximum_depth: int = None,
         sort=True,
@@ -21,6 +21,7 @@ def bprint(
         skip_builtin=True,
         skip_callable=True,
         skip_none=True,
+        seq_bullet='- ',
         sep='\n\n'
 ):
     """
@@ -38,6 +39,14 @@ def bprint(
 
         indent
             The string used for each indent level.
+
+            If a tuple of two strings is passed, the first string
+            will be used for the first indent, and the second string
+            for the rest.
+
+            If a tuple of three strings is passed, the first string
+            will be used for the first indent, the third for the last,
+            and the second for the rest.
 
         start_indent_level
             The starting indent level.
@@ -74,6 +83,9 @@ def bprint(
         skip_none
             Whether ``None`` fields should be skipped or not.
 
+        seq_bullet
+            The bullet string to use for sequences like lists.
+
         sep
             The separator to use when there is more than one value.
     """
@@ -99,10 +111,11 @@ def bprint(
         else:
             return skip_callable and callable(attr)
 
-    def handle_kvp(ind, level, kvp):
+    def handle_kvp(level, kvp):
         if sort:
             kvp = sorted(kvp)
 
+        ind = get_indent(level)
         for key, value in kvp:
             if not should_skip(key, value):
                 out.write('\n')
@@ -111,14 +124,23 @@ def bprint(
                 out.write(':')
                 fmt(value, level, ' ')
 
+    if isinstance(indent, str):
+        def get_indent(level):
+            return indent * level
+    else:
+        def get_indent(level):
+            if level == 0:
+                return ''
+            elif level == 1:
+                return indent[0]
+            else:
+                return indent[0] + (indent[1] * (level - 2)) + indent[-1]
+
     def fmt(obj, level, space=''):
         """
         Pretty formats the given object as a YAML string which is returned.
         (based on TLObject.pretty_format)
         """
-        cur_indent = indent * level
-        next_indent = cur_indent + indent
-
         if isinstance(obj, int):
             out.write(space)
             out.write(str(obj))
@@ -157,7 +179,7 @@ def bprint(
             out.write(space)
             out.write('dict')
             if level < maximum_depth:
-                handle_kvp(next_indent, level + 1, obj.items())
+                handle_kvp(level + 1, obj.items())
 
         elif hasattr(obj, '__iter__'):
             # Special case who wants no space before
@@ -165,8 +187,8 @@ def bprint(
                 level += 1
                 for attr in obj:
                     out.write('\n')
-                    out.write(next_indent)
-                    out.write('- ')
+                    out.write(get_indent(level))
+                    out.write(seq_bullet)
                     fmt(attr, level)
 
                 level -= 1
@@ -179,8 +201,7 @@ def bprint(
             out.write(obj.__class__.__name__)
             if level < maximum_depth:
                 out.write(':')
-                handle_kvp(next_indent, level + 1,
-                           ((name, getattr(obj, name)) for name in dir(obj)))
+                handle_kvp(level + 1, ((name, getattr(obj, name)) for name in dir(obj)))
 
     for val in values:
         fmt(val, level=start_indent_level)

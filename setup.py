@@ -4,7 +4,7 @@ import re
 from setuptools import setup
 
 
-VERSION = '0.4.0'
+VERSION = '0.5.0'
 
 
 def main():

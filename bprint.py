@@ -208,4 +208,4 @@ def bprint(
         out.write(sep)
 
     if stream == str:
-        return out.value()
+        return out.getvalue()

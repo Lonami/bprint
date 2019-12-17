@@ -21,6 +21,8 @@ def bprint(
         skip_builtin=True,
         skip_callable=True,
         skip_none=True,
+        skip_attr_names: typing.Sequence[str] = (),
+        skip_attr_values: typing.Sequence[typing.Any] = (),
         seq_bullet='- ',
         sep='\n\n'
 ):
@@ -83,6 +85,12 @@ def bprint(
         skip_none
             Whether ``None`` fields should be skipped or not.
 
+        skip_attr_names
+            A list of attribute names to skip. Empty by default.
+
+        skip_attr_values
+            A list of attribute values to skip. Empty by default.
+
         seq_bullet
             The bullet string to use for sequences like lists.
 
@@ -102,7 +110,11 @@ def bprint(
         out = stream or DEFAULT_STREAM
 
     def should_skip(name, attr):
-        if name.startswith('__'):
+        if name in skip_attr_names:
+            return True
+        elif attr in skip_attr_values:
+            return True
+        elif name.startswith('__'):
             return skip_builtin
         elif name.startswith('_'):
             return skip_private

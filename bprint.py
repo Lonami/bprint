@@ -6,6 +6,10 @@ import typing
 DEFAULT_STREAM = sys.stdout
 
 
+def default_skip_predicate(name: str, value: typing.Any) -> bool:
+    return name.startswith('_') or value is None or callable(value)
+
+
 def bprint(
         *values: typing.Any,
         stream: typing.Union[typing.TextIO, typing.Type[str]] = None,
@@ -17,10 +21,7 @@ def bprint(
         max_bytes_len=64,
         truncate_suffix='…',
         human_bytes=True,
-        skip_private=True,
-        skip_builtin=True,
-        skip_callable=True,
-        skip_none=True,
+        skip_predicate: typing.Callable[[str, typing.Any], bool] = default_skip_predicate,
         seq_bullet='- ',
         sep='\n\n'
 ):
@@ -71,17 +72,9 @@ def bprint(
             Whether bytes should be shown as readable strings if it contains
             only printable characters.
 
-        skip_private
-            Whether private members should be skipped or not.
-
-        skip_builtin
-            Whether builtin members should be skipped or not.
-
-        skip_callable
-            Whether callable members should be skipped or not.
-
-        skip_none
-            Whether ``None`` fields should be skipped or not.
+        skip_predicate
+            A callable predicate that returns whether to skip an attribute
+            given its name and value.
 
         seq_bullet
             The bullet string to use for sequences like lists.
@@ -101,23 +94,13 @@ def bprint(
     else:
         out = stream or DEFAULT_STREAM
 
-    def should_skip(name, attr):
-        if name.startswith('__'):
-            return skip_builtin
-        elif name.startswith('_'):
-            return skip_private
-        elif attr is None:
-            return skip_none
-        else:
-            return skip_callable and callable(attr)
-
     def handle_kvp(level, kvp):
         if sort:
             kvp = sorted(kvp)
 
         ind = get_indent(level)
         for key, value in kvp:
-            if not should_skip(key, value):
+            if not skip_predicate(key, value):
                 out.write('\n')
                 out.write(ind)
                 out.write(key)

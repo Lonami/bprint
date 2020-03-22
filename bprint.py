@@ -23,7 +23,8 @@ def bprint(
         human_bytes=True,
         skip_predicate: typing.Callable[[str, typing.Any], bool] = default_skip_predicate,
         seq_bullet='- ',
-        sep='\n\n'
+        sep='\n\n',
+        inline_singular=False
 ):
     """
     Beautifully prints the given ``values``.
@@ -81,6 +82,10 @@ def bprint(
 
         sep
             The separator to use when there is more than one value.
+
+        inline_singular
+            If True, removes the newline and indent before items if they only
+            have a single value
     """
     if maximum_depth is None:
         maximum_depth = float('inf')
@@ -95,14 +100,18 @@ def bprint(
         out = stream or DEFAULT_STREAM
 
     def handle_kvp(level, kvp):
-        kvp = ((k, v) for k, v in kvp if not skip_predicate(k, v))
+        kvp = [(k, v) for k, v in kvp if not skip_predicate(k, v)]
         if sort:
             kvp = sorted(kvp)
 
         ind = get_indent(level)
+        has_multiple_items = len(kvp) > 1
         for key, value in kvp:
-            out.write('\n')
-            out.write(ind)
+            if not inline_singular or has_multiple_items:
+                out.write('\n')
+                out.write(ind)
+            else:
+                out.write(' ')
             out.write(key)
             out.write(':')
             fmt(value, level, ' ')

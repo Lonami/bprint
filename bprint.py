@@ -95,17 +95,17 @@ def bprint(
         out = stream or DEFAULT_STREAM
 
     def handle_kvp(level, kvp):
+        kvp = ((k, v) for k, v in kvp if not skip_predicate(k, v))
         if sort:
             kvp = sorted(kvp)
 
         ind = get_indent(level)
         for key, value in kvp:
-            if not skip_predicate(key, value):
-                out.write('\n')
-                out.write(ind)
-                out.write(key)
-                out.write(':')
-                fmt(value, level, ' ')
+            out.write('\n')
+            out.write(ind)
+            out.write(key)
+            out.write(':')
+            fmt(value, level, ' ')
 
     if isinstance(indent, str):
         def get_indent(level):

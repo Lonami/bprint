@@ -101,6 +101,8 @@ def bprint(
     else:
         out = stream or DEFAULT_STREAM
 
+    seen = set()
+
     def should_skip(name, attr):
         if name.startswith('__'):
             return skip_builtin
@@ -175,13 +177,19 @@ def bprint(
                 out.write('<…>' if len(obj) > max_bytes_len else
                           ' '.join(f'{b:02X}' for b in obj))
 
+        elif id(obj) in seen:
+            out.write(space)
+            out.write('<cyclic reference {:x}>'.format(id(obj)))
+
         elif isinstance(obj, dict):
+            seen.add(id(obj))
             out.write(space)
             out.write('dict')
             if level < maximum_depth:
                 handle_kvp(level + 1, obj.items())
 
         elif hasattr(obj, '__iter__'):
+            seen.add(id(obj))
             # Special case who wants no space before
             if level < maximum_depth:
                 level += 1
@@ -197,6 +205,7 @@ def bprint(
                 out.write('[…]')
 
         else:
+            seen.add(id(obj))
             out.write(space)
             out.write(obj.__class__.__name__)
             if level < maximum_depth:

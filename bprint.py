@@ -188,7 +188,10 @@ def bprint(
             if level < maximum_depth:
                 handle_kvp(level + 1, obj.items())
 
-        elif hasattr(obj, '__iter__'):
+        # Iterating over an IO object yields lines or bytes, and while we
+        # could consume those we can seek back in, it's probably best to not
+        # print entire files.
+        elif hasattr(obj, '__iter__') and not isinstance(obj, io.IOBase):
             seen.add(id(obj))
             # Special case who wants no space before
             if level < maximum_depth:

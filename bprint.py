@@ -6,6 +6,10 @@ import typing
 DEFAULT_STREAM = sys.stdout
 
 
+def default_skip_predicate(name: str, value: typing.Any) -> bool:
+    return name.startswith('_') or value is None or callable(value)
+
+
 def bprint(
         *values: typing.Any,
         stream: typing.Union[typing.TextIO, typing.Type[str]] = None,
@@ -17,12 +21,10 @@ def bprint(
         max_bytes_len=64,
         truncate_suffix='…',
         human_bytes=True,
-        skip_private=True,
-        skip_builtin=True,
-        skip_callable=True,
-        skip_none=True,
+        skip_predicate: typing.Callable[[str, typing.Any], bool] = default_skip_predicate,
         seq_bullet='- ',
-        sep='\n\n'
+        sep='\n\n',
+        inline_singular=False
 ):
     """
     Beautifully prints the given ``values``.
@@ -71,23 +73,19 @@ def bprint(
             Whether bytes should be shown as readable strings if it contains
             only printable characters.
 
-        skip_private
-            Whether private members should be skipped or not.
-
-        skip_builtin
-            Whether builtin members should be skipped or not.
-
-        skip_callable
-            Whether callable members should be skipped or not.
-
-        skip_none
-            Whether ``None`` fields should be skipped or not.
+        skip_predicate
+            A callable predicate that returns whether to skip an attribute
+            given its name and value.
 
         seq_bullet
             The bullet string to use for sequences like lists.
 
         sep
             The separator to use when there is more than one value.
+
+        inline_singular
+            If ``True``, removes the newline and indent before items if they
+            only have a single value
     """
     if maximum_depth is None:
         maximum_depth = float('inf')
@@ -102,16 +100,6 @@ def bprint(
         out = stream or DEFAULT_STREAM
 
     seen = set()
-
-    def should_skip(name, attr):
-        if name.startswith('__'):
-            return skip_builtin
-        elif name.startswith('_'):
-            return skip_private
-        elif attr is None:
-            return skip_none
-        else:
-            return skip_callable and callable(attr)
 
     def adapt_key(key):
         if isinstance(key, str):
@@ -128,18 +116,21 @@ def bprint(
 
     def handle_kvp(level, kvp):
         # Keys should always be strings, we can't print objects in the key-side
-        kvp = [(adapt_key(k), v) for k, v in kvp]
+        kvp = [(adapt_key(k), v) for k, v in kvp if not skip_predicate(k, v)]
         if sort:
             kvp.sort()
 
         ind = get_indent(level)
+        has_multiple_items = len(kvp) > 1
         for key, value in kvp:
-            if not should_skip(key, value):
+            if not inline_singular or has_multiple_items:
                 out.write('\n')
                 out.write(ind)
-                out.write(key)
-                out.write(':')
-                fmt(value, level, ' ')
+            else:
+                out.write(' ')
+            out.write(key)
+            out.write(':')
+            fmt(value, level, ' ')
 
     if isinstance(indent, str):
         def get_indent(level):

@@ -115,8 +115,13 @@ def bprint(
             return key.__name__
 
     def handle_kvp(level, kvp):
-        # Keys should always be strings, we can't print objects in the key-side
-        kvp = [(adapt_key(k), v) for k, v in kvp if not skip_predicate(k, v)]
+        # Keys should always be `str`, we can't print objects in the key-side
+        kvp = [(adapt_key(k), v) for k, v in kvp]
+
+        # Iterate twice, one to fix the keys and another for `skip_predicate`
+        # which expects `str` and we don't want to call `adapt_key` twice.
+        kvp = [(k, v) for k, v in kvp if not skip_predicate(k, v)]
+
         if sort:
             kvp.sort()
 

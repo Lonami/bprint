@@ -211,11 +211,19 @@ def bprint(
             # Special case who wants no space before
             if level < maximum_depth:
                 level += 1
-                for attr in obj:
-                    out.write('\n')
-                    out.write(get_indent(level))
-                    out.write(seq_bullet)
-                    fmt(attr, level)
+                try:
+                    for attr in obj:
+                        out.write('\n')
+                        out.write(get_indent(level))
+                        out.write(seq_bullet)
+                        fmt(attr, level)
+                except TypeError:
+                    # `weakproxy` and `weakcallableproxy` pretend to
+                    # have `__iter__`, but iterating over them fails.
+                    #
+                    # Checking against `weakref.ProxyTypes` also seems to fail.
+                    out.write(space)
+                    out.write('<proxy iterable {:x}>'.format(id(obj)))
 
                 level -= 1
             else:

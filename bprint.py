@@ -113,9 +113,24 @@ def bprint(
         else:
             return skip_callable and callable(attr)
 
+    def adapt_key(key):
+        if isinstance(key, str):
+            return key
+        elif isinstance(key, int):
+            return str(key)
+        elif isinstance(key, bytes):
+            try:
+                return key.decode('utf-8')
+            except UnicodeDecodeError:
+                return '<{} byte{}>'.format(len(key), '' if len(key) == 1 else 's')
+        else:
+            return key.__name__
+
     def handle_kvp(level, kvp):
+        # Keys should always be strings, we can't print objects in the key-side
+        kvp = [(adapt_key(k), v) for k, v in kvp]
         if sort:
-            kvp = sorted(kvp)
+            kvp.sort()
 
         ind = get_indent(level)
         for key, value in kvp:

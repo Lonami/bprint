@@ -6,8 +6,8 @@ import typing
 DEFAULT_STREAM = sys.stdout
 
 
-def default_skip_predicate(name: str, value: typing.Any) -> bool:
-    return name.startswith('_') or value is None or callable(value)
+def _default_skip_predicate(name: str, value: typing.Any, callable_=callable) -> bool:
+    return name.startswith('_') or value is None or callable_(value)
 
 
 def bprint(
@@ -21,7 +21,7 @@ def bprint(
         max_bytes_len=64,
         truncate_suffix='…',
         human_bytes=True,
-        skip_predicate: typing.Callable[[str, typing.Any], bool] = default_skip_predicate,
+        skip_predicate: typing.Callable[[str, typing.Any], bool] = _default_skip_predicate,
         seq_bullet='- ',
         sep='\n\n',
         inline_singular=False
@@ -87,30 +87,47 @@ def bprint(
             If ``True``, removes the newline and indent before items if they
             only have a single value
     """
+    # Avoid global look-up of commonly-used callables
+    all_ = all
+    bytes_ = bytes
+    datetime_ = datetime.datetime
+    dict_ = dict
+    dir_ = dir
+    float_ = float
+    getattr_ = getattr
+    hasattr_ = hasattr
+    id_ = id
+    int_ = int
+    is_ = isinstance
+    len_ = len
+    repr_ = repr
+    set_ = set
+    str_ = str
+
     if maximum_depth is None:
-        maximum_depth = float('inf')
+        maximum_depth = float_('inf')
     elif maximum_depth <= 0:
         return
     else:
         maximum_depth -= 1
 
-    if stream == str:
+    if stream == str_:
         out = io.StringIO()
     else:
         out = stream or DEFAULT_STREAM
 
-    seen = set()
+    seen = set_()
 
     def adapt_key(key):
-        if isinstance(key, str):
+        if is_(key, str_):
             return key
-        elif isinstance(key, int):
-            return str(key)
-        elif isinstance(key, bytes):
+        elif is_(key, int_):
+            return str_(key)
+        elif is_(key, bytes_):
             try:
                 return key.decode('utf-8')
             except UnicodeDecodeError:
-                return '<{} byte{}>'.format(len(key), '' if len(key) == 1 else 's')
+                return '<{} byte{}>'.format(len_(key), '' if len_(key) == 1 else 's')
         else:
             return key.__name__
 
@@ -125,19 +142,21 @@ def bprint(
         if sort:
             kvp.sort()
 
-        ind = get_indent(level)
-        has_multiple_items = len(kvp) > 1
-        for key, value in kvp:
-            if not inline_singular or has_multiple_items:
+        if inline_singular and len_(kvp) == 1:
+            out.write(' ')
+            out.write(kvp[0][0])
+            out.write(':')
+            fmt(kvp[0][1], level, ' ')
+        else:
+            ind = get_indent(level)
+            for key, value in kvp:
                 out.write('\n')
                 out.write(ind)
-            else:
-                out.write(' ')
-            out.write(key)
-            out.write(':')
-            fmt(value, level, ' ')
+                out.write(key)
+                out.write(':')
+                fmt(value, level, ' ')
 
-    if isinstance(indent, str):
+    if isinstance(indent, str_):
         def get_indent(level):
             return indent * level
     else:
@@ -154,46 +173,46 @@ def bprint(
         Pretty formats the given object as a YAML string which is returned.
         (based on TLObject.pretty_format)
         """
-        if isinstance(obj, int):
+        if is_(obj, int_):
             out.write(space)
-            out.write(str(obj))
+            out.write(str_(obj))
 
-        elif isinstance(obj, float):
+        elif is_(obj, float_):
             out.write(space)
             out.write('{:.2f}'.format(obj))
 
-        elif isinstance(obj, datetime.datetime):
+        elif is_(obj, datetime_):
             out.write(space)
             out.write(obj.strftime('%Y-%m-%d %H:%M:%S'))
 
-        elif isinstance(obj, str):
+        elif is_(obj, str_):
             out.write(space)
-            value = repr(obj[:max_str_len])[:-1]
+            value = repr_(obj[:max_str_len])[:-1]
             out.write(value)
-            if len(obj) > max_str_len:
+            if len_(obj) > max_str_len:
                 out.write(truncate_suffix)
 
             out.write(value[0])
 
-        elif isinstance(obj, bytes):
+        elif is_(obj, bytes_):
             out.write(space)
-            if human_bytes and all(0x20 <= c < 0x7f for c in obj):
-                value = repr(obj[:max_bytes_len])[:-1]
+            if human_bytes and all_(0x20 <= c < 0x7f for c in obj):
+                value = repr_(obj[:max_bytes_len])[:-1]
                 out.write(value)
-                if len(obj) > max_bytes_len:
+                if len_(obj) > max_bytes_len:
                     out.write(truncate_suffix)
 
                 out.write(value[1])
             else:
-                out.write('<…>' if len(obj) > max_bytes_len else
+                out.write('<…>' if len_(obj) > max_bytes_len else
                           ' '.join(f'{b:02X}' for b in obj))
 
-        elif id(obj) in seen:
+        elif id_(obj) in seen:
             out.write(space)
-            out.write('<cyclic reference {:x}>'.format(id(obj)))
+            out.write('<cyclic reference {:x}>'.format(id_(obj)))
 
-        elif isinstance(obj, dict):
-            seen.add(id(obj))
+        elif is_(obj, dict_):
+            seen.add(id_(obj))
             out.write(space)
             out.write('dict')
             if level < maximum_depth:
@@ -202,8 +221,8 @@ def bprint(
         # Iterating over an IO object yields lines or bytes, and while we
         # could consume those we can seek back in, it's probably best to not
         # print entire files.
-        elif hasattr(obj, '__iter__') and not isinstance(obj, io.IOBase):
-            seen.add(id(obj))
+        elif hasattr_(obj, '__iter__') and not is_(obj, io.IOBase):
+            seen.add(id_(obj))
             # Special case who wants no space before
             if level < maximum_depth:
                 level += 1
@@ -219,7 +238,7 @@ def bprint(
                     #
                     # Checking against `weakref.ProxyTypes` also seems to fail.
                     out.write(space)
-                    out.write('<proxy iterable {:x}>'.format(id(obj)))
+                    out.write('<proxy iterable {:x}>'.format(id_(obj)))
 
                 level -= 1
             else:
@@ -227,16 +246,16 @@ def bprint(
                 out.write('[…]')
 
         else:
-            seen.add(id(obj))
+            seen.add(id_(obj))
             out.write(space)
             out.write(obj.__class__.__name__)
             if level < maximum_depth:
                 out.write(':')
-                handle_kvp(level + 1, ((name, getattr(obj, name)) for name in dir(obj)))
+                handle_kvp(level + 1, ((name, getattr_(obj, name)) for name in dir_(obj)))
 
     for val in values:
         fmt(val, level=start_indent_level)
         out.write(sep)
 
-    if stream == str:
+    if stream == str_:
         return out.getvalue()

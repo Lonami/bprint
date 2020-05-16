@@ -227,6 +227,8 @@ def bprint(
         # print entire files.
         elif hasattr_(obj, '__iter__') and not is_(obj, io.IOBase):
             seen.add(id_(obj))
+            out.write(space)
+            out.write(obj.__class__.__name__)
             # Special case who wants no space before
             if level < maximum_depth:
                 level += 1

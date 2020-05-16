@@ -100,6 +100,7 @@ def bprint(
     int_ = int
     is_ = isinstance
     len_ = len
+    range_ = range
     repr_ = repr
     set_ = set
     str_ = str
@@ -210,6 +211,13 @@ def bprint(
             else:
                 out.write('<…>' if len_(obj) > max_bytes_len else
                           ' '.join(f'{b:02X}' for b in obj))
+
+        elif is_(obj, range_):
+            out.write(space)
+            if obj.start:
+                out.write(str_(range))
+            else:
+                out.write('range({})'.format(obj.stop))
 
         elif id_(obj) in seen:
             out.write(space)

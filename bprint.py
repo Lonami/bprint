@@ -173,7 +173,11 @@ def bprint(
         Pretty formats the given object as a YAML string which is returned.
         (based on TLObject.pretty_format)
         """
-        if is_(obj, int_):
+        if obj is None:  # seems None is faster than cached a none
+            out.write(space)
+            out.write('None')
+
+        elif is_(obj, int_):
             out.write(space)
             out.write(str_(obj))
 

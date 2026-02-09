@@ -1,3 +1,7 @@
+Moved to https://codeberg.org/Lonami/bprint. The GitHub repository may be deleted in the future.
+
+---
+
 # bprint
 
 Beautiful print for Python.
